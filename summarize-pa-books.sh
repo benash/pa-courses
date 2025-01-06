@@ -37,12 +37,12 @@ cat << 'EOF' > index.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jordan Peterson Academy - Course Books</title>
+    <title>Peterson Academy - Course Books</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>Jordan Peterson Academy - Course Books</h1>
+    <h1>Peterson Academy - Course Books</h1>
 EOF
 
 # Get all courses and process them

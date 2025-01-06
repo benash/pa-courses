@@ -1,6 +1,6 @@
-# Jordan Peterson Academy Books
+# Peterson Academy Books
 
-This repository contains a script that generates a comprehensive listing of all books recommended across Jordan Peterson Academy courses. The output is an elegantly formatted HTML page that displays courses and their associated recommended reading materials.
+This repository contains a script that generates a comprehensive listing of all books recommended across Peterson Academy courses. The output is an elegantly formatted HTML page that displays courses and their associated recommended reading materials.
 
 ## Usage
 
