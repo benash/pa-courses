@@ -1,4 +1,7 @@
 #!/bin/bash
+set -a  # automatically export all variables
+source .env
+set +a  # stop auto-exporting
 
 # Common curl headers
 COMMON_HEADERS=(
@@ -27,97 +30,19 @@ make_api_call() {
         -H "sentry-trace: $(uuidgen)-$(uuidgen)-1"
 }
 
-# Output CSS and header
-cat << 'EOF'
-<style>
-.course-section {
-    margin-bottom: 40px;
-    clear: both;
-}
-
-.course-header {
-    width: 100%;
-    margin-bottom: 1em;
-}
-
-.course-title {
-    font-size: 2em;
-    margin: 0 0 0.5em 0;
-}
-
-.course-title a {
-    color: #333;
-    text-decoration: none;
-}
-
-.course-info {
-    color: #666;
-    font-style: italic;
-    margin-bottom: 1em;
-}
-
-.course-image {
-    float: left;
-    width: 300px;
-    height: auto;
-    margin-right: 20px;
-    margin-bottom: 20px;
-}
-
-.course-content {
-    overflow: hidden;
-}
-
-.course-description {
-    line-height: 1.6;
-    margin-bottom: 20px;
-}
-
-.books-section {
-    overflow: hidden;
-    margin-bottom: 20px;
-}
-
-.book-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 1em;
-}
-
-.book-link {
-    display: block;
-    text-align: center;
-}
-
-.book-image {
-    height: 150px;
-    width: auto;
-    object-fit: contain;
-    margin-bottom: 0.5em;
-}
-
-.book-title {
-    font-size: 0.9em;
-    color: #333;
-    text-decoration: none;
-}
-
-.instructor-bio {
-    border-left: 3px solid #ddd;
-    padding-left: 1em;
-    margin: 1em 0;
-}
-
-@media (max-width: 768px) {
-    .course-image {
-        float: none;
-        width: 100%;
-        margin-right: 0;
-    }
-}
-</style>
-# Course Summaries and Recommended Books
-
+# Output complete HTML document
+cat << 'EOF' > index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jordan Peterson Academy - Course Books</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <h1>Jordan Peterson Academy - Course Books</h1>
 EOF
 
 # Get all courses and process them
@@ -143,43 +68,51 @@ done | jq -s '.' | jq -c '.[]' | while read -r course; do
     id=$(echo "$course" | jq -r '.id')
     description=$(echo "$course" | jq -r '.description')
     
-    echo "<div class=\"course-section\">"
-    # Header section - full width
-    echo "  <div class=\"course-header\">"
-    echo "    <h2 class=\"course-title\"><a href=\"https://petersonacademy.com/courses/$slug\">$title</a></h2>"
-    # Process instructors
-    echo "$course" | jq -r '.instructors | map(.name) | join(" with ")' | while read -r instructor_names; do
-        if [[ -n "$instructor_names" && "$instructor_names" != "null" ]]; then
-            echo "    <div class=\"course-info\">with $instructor_names</div>"
+    {
+        echo "    <div class=\"course-section\">"
+        # Header section with inline instructor names
+        echo "        <div class=\"course-header\">"
+        echo "            <h2 class=\"course-title\"><a href=\"https://petersonacademy.com/courses/$slug\">$title</a></h2>"
+        # Process instructors inline
+        echo "$course" | jq -r '.instructors | map(.name) | join(" with ")' | while read -r instructor_names; do
+            if [[ -n "$instructor_names" && "$instructor_names" != "null" ]]; then
+                echo "            <div class=\"course-info\">with $instructor_names</div>"
+            fi
+        done
+        echo "        </div>"
+        
+        # Image and content
+        echo "        <a href=\"https://petersonacademy.com/courses/$slug\" class=\"course-image-link\">"
+        echo "            <img src=\"https://ik.imagekit.io/0qkyxdfkk/prod/courses%2F$id%2Fthumb\" alt=\"$title\" class=\"course-image\">"
+        echo "        </a>"
+        echo "        <div class=\"course-content\">"
+        echo "            <h3 class=\"section-heading\">Description</h3>"
+        echo "            <div class=\"course-description\">$description</div>"
+
+        # Books section
+        books=$(echo "$course" | jq '.books')
+        if [[ $(echo "$books" | jq length) -gt 0 ]]; then
+            echo "            <div class=\"books-section\">"
+            echo "                <h3>Recommended Books</h3>"
+            echo "                <div class=\"book-grid\">"
+            echo "$books" | jq -r '.[] | "                    <a href=\"\(.url)\" class=\"book-link\">\n                        <img src=\"https://ik.imagekit.io/0qkyxdfkk/prod/books%2F\(.id)%2Fthumb\" alt=\"\(.title)\" class=\"book-image\">\n                        <div class=\"book-title\">\(.title)</div>\n                    </a>"'
+            echo "                </div>"
+            echo "            </div>"
         fi
-    done
-    echo "  </div>"
-    
-    # Image and content
-    echo "  <img src=\"https://ik.imagekit.io/0qkyxdfkk/prod/courses%2F$id%2Fthumb\" alt=\"$title\" class=\"course-image\">"
-    echo "  <div class=\"course-content\">"
-    echo "    <div class=\"course-description\">$description</div>"
+        echo "        </div>"
 
-    # Books section
-    books=$(echo "$course" | jq '.books')
-    if [[ $(echo "$books" | jq length) -gt 0 ]]; then
-        echo "    <div class=\"books-section\">"
-        echo "      <h3>Recommended Books</h3>"
-        echo "      <div class=\"book-grid\">"
-        echo "$books" | jq -r '.[] | "        <a href=\"\(.url)\" class=\"book-link\">\n          <img src=\"https://ik.imagekit.io/0qkyxdfkk/prod/books%2F\(.id)%2Fthumb\" alt=\"\(.title)\" class=\"book-image\">\n          <div class=\"book-title\">\(.title)</div>\n        </a>"'
-        echo "      </div>"
+        # Instructor bios
+        echo "$course" | jq -c '.instructors[]' | while read -r instructor; do
+            bio=$(echo "$instructor" | jq -r '.bio')
+            echo "        <div class=\"instructor-bio\">"
+            echo "            <strong>About the Instructor</strong>"
+            echo "            $bio"
+            echo "        </div>"
+        done
         echo "    </div>"
-    fi
-
-    # Instructor bios
-    echo "$course" | jq -c '.instructors[]' | while read -r instructor; do
-        bio=$(echo "$instructor" | jq -r '.bio')
-        echo "    <blockquote class=\"instructor-bio\">"
-        echo "      <strong>About the Instructor</strong><br>"
-        echo "      $bio"
-        echo "    </blockquote>"
-    done
-    echo "  </div>"
-    echo "</div>"
-    echo
+    } >> index.html
 done
+
+# Close HTML document
+echo "</body>" >> index.html
+echo "</html>" >> index.html
